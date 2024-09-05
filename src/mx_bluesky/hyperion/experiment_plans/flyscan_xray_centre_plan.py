@@ -35,6 +35,7 @@ from dodal.devices.synchrotron import Synchrotron
 from dodal.devices.undulator import Undulator
 from dodal.devices.xbpm_feedback import XBPMFeedback
 from dodal.devices.zebra import Zebra
+from dodal.devices.zebra_controlled_shutter import ZebraShutter
 from dodal.devices.zocalo.zocalo_results import (
     ZOCALO_READING_PLAN_NAME,
     ZOCALO_STAGE_GROUP,
@@ -57,9 +58,9 @@ from mx_bluesky.hyperion.device_setup_plans.setup_panda import (
     setup_panda_for_flyscan,
 )
 from mx_bluesky.hyperion.device_setup_plans.setup_zebra import (
-    set_zebra_shutter_to_manual,
     setup_zebra_for_gridscan,
     setup_zebra_for_panda_flyscan,
+    tidy_up_zebra_after_gridscan,
 )
 from mx_bluesky.hyperion.device_setup_plans.xbpm_feedback import (
     transmission_and_xbpm_feedback_for_collection_decorator,
@@ -97,6 +98,7 @@ class FlyScanXRayCentreComposite:
     panda: HDFPanda
     panda_fast_grid_scan: PandAFastGridScan
     robot: BartRobot
+    sample_shutter: ZebraShutter
 
     @property
     def sample_motors(self) -> Smargon:
@@ -438,7 +440,9 @@ def _generic_tidy(
     fgs_composite: FlyScanXRayCentreComposite, group, wait=True
 ) -> MsgGenerator:
     LOGGER.info("Tidying up Zebra")
-    yield from set_zebra_shutter_to_manual(fgs_composite.zebra, group=group, wait=wait)
+    yield from tidy_up_zebra_after_gridscan(
+        fgs_composite.zebra, fgs_composite.sample_shutter, group=group, wait=wait
+    )
     LOGGER.info("Tidying up Zocalo")
     # make sure we don't consume any other results
     yield from bps.unstage(fgs_composite.zocalo, group=group, wait=wait)
@@ -458,7 +462,9 @@ def _zebra_triggering_setup(
     parameters: ThreeDGridScan,
     initial_xyz: np.ndarray,
 ):
-    yield from setup_zebra_for_gridscan(fgs_composite.zebra, wait=True)
+    yield from setup_zebra_for_gridscan(
+        fgs_composite.zebra, fgs_composite.sample_shutter, wait=True
+    )
 
 
 def _panda_triggering_setup(
@@ -516,4 +522,6 @@ def _panda_triggering_setup(
     )
 
     LOGGER.info("Setting up Zebra for panda flyscan")
-    yield from setup_zebra_for_panda_flyscan(fgs_composite.zebra, wait=True)
+    yield from setup_zebra_for_panda_flyscan(
+        fgs_composite.zebra, fgs_composite.sample_shutter, wait=True
+    )
