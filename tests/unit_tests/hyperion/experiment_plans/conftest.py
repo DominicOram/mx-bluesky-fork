@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from functools import partial
 from unittest.mock import MagicMock, patch
 
@@ -19,6 +19,7 @@ from event_model import Event
 from ophyd.sim import NullStatus
 from ophyd_async.core import AsyncStatus, set_mock_value
 
+from mx_bluesky.hyperion.experiment_plans.common.xrc_result import XRayCentreResult
 from mx_bluesky.hyperion.experiment_plans.grid_detect_then_xray_centre_plan import (
     GridDetectThenXRayCentreComposite,
 )
@@ -40,6 +41,25 @@ from mx_bluesky.hyperion.external_interaction.ispyb.ispyb_store import (
 )
 from mx_bluesky.hyperion.parameters.constants import CONST
 from mx_bluesky.hyperion.parameters.gridscan import HyperionThreeDGridScan
+
+FLYSCAN_RESULT_HIGH = XRayCentreResult(
+    centre_of_mass_mm=np.array([0.1, 0.2, 0.3]),
+    bounding_box_mm=(np.array([0.09, 0.19, 0.29]), np.array([0.11, 0.21, 0.31])),
+    max_count=30,
+    total_count=100,
+)
+FLYSCAN_RESULT_MED = XRayCentreResult(
+    centre_of_mass_mm=np.array([0.4, 0.5, 0.6]),
+    bounding_box_mm=(np.array([0.09, 0.19, 0.29]), np.array([0.11, 0.21, 0.31])),
+    max_count=20,
+    total_count=120,
+)
+FLYSCAN_RESULT_LOW = XRayCentreResult(
+    centre_of_mass_mm=np.array([0.7, 0.8, 0.9]),
+    bounding_box_mm=(np.array([0.09, 0.19, 0.29]), np.array([0.11, 0.21, 0.31])),
+    max_count=10,
+    total_count=140,
+)
 
 
 def make_event_doc(data, descriptor="abc123") -> Event:
@@ -82,12 +102,12 @@ def grid_detect_devices(
     aperture_scatterguard: ApertureScatterguard,
     backlight: Backlight,
     detector_motion: DetectorMotion,
+    eiger: EigerDetector,
     smargon: Smargon,
     oav: OAV,
     zocalo: ZocaloResults,
     synchrotron: Synchrotron,
     fast_grid_scan: ZebraFastGridScan,
-    eiger: EigerDetector,
 ) -> GridDetectThenXRayCentreComposite:
     return GridDetectThenXRayCentreComposite(
         aperture_scatterguard=aperture_scatterguard,
@@ -138,17 +158,6 @@ def mock_zocalo_trigger(zocalo: ZocaloResults, result):
         await zocalo._put_results(results, {"dcid": 0, "dcgid": 0})
 
     zocalo.trigger = MagicMock(side_effect=partial(mock_complete, result))
-
-
-def simulate_xrc_result(
-    sim_run_engine: RunEngineSimulator,
-    zocalo: ZocaloResults,
-    test_results: Sequence[dict],
-):
-    for k in test_results[0].keys():
-        sim_run_engine.add_read_handler_for(
-            getattr(zocalo, k), np.array([r[k] for r in test_results])
-        )
 
 
 def run_generic_ispyb_handler_setup(
@@ -333,3 +342,16 @@ def assert_event(mock_call, expected):
         actual = actual["data"]
     for k, v in expected.items():
         assert actual[k] == v, f"Mismatch in key {k}, {actual} <=> {expected}"
+
+
+def sim_fire_event_on_open_run(sim_run_engine: RunEngineSimulator, run_name: str):
+    def fire_event(msg: Msg):
+        try:
+            sim_run_engine.fire_callback("start", msg.kwargs)
+        except Exception as e:
+            print(f"Exception is {e}")
+
+    def msg_maches_run(msg: Msg):
+        return msg.run == run_name
+
+    sim_run_engine.add_handler("open_run", fire_event, msg_maches_run)
