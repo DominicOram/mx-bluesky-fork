@@ -60,7 +60,10 @@ def find_a_pin(pin_tip_detection):
 
 @pytest.fixture
 def composite(
-    robot_load_composite, fake_create_rotation_devices, sim_run_engine
+    robot_load_composite,
+    fake_create_rotation_devices,
+    pin_tip_detection_with_found_pin,
+    sim_run_engine,
 ) -> LoadCentreCollectComposite:
     rlaec_args = {
         field.name: getattr(robot_load_composite, field.name)
@@ -72,6 +75,7 @@ def composite(
     }
 
     composite = LoadCentreCollectComposite(**(rlaec_args | rotation_args))
+    composite.pin_tip_detection = pin_tip_detection_with_found_pin
     minaxis = Location(setpoint=-2, readback=-2)
     maxaxis = Location(setpoint=2, readback=2)
     tip_x_px, tip_y_px, top_edge_array, bottom_edge_array = pin_tip_edge_data()
@@ -113,9 +117,6 @@ def composite(
 
     sim_run_engine.add_read_handler_for(
         composite.pin_tip_detection.triggered_tip, (tip_x_px, tip_y_px)
-    )
-    composite.pin_tip_detection.trigger = MagicMock(
-        side_effect=find_a_pin(composite.pin_tip_detection)
     )
     return composite
 
