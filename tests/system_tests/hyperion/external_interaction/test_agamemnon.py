@@ -17,6 +17,7 @@ EXPECTED_PARAMETERS = AgamemnonLoadCentreCollect(
     sample_id=12345,
     sample_puck=1,
     sample_pin=1,
+    demand_energy_ev=12700.045934258673,
 )
 
 
