@@ -96,6 +96,7 @@ from mx_bluesky.common.utils.log import (
     _get_logging_dirs,
     do_default_logging_setup,
 )
+from mx_bluesky.hyperion.baton_handler import HYPERION_USER
 from mx_bluesky.hyperion.experiment_plans.rotation_scan_plan import (
     RotationScanComposite,
 )
@@ -463,7 +464,10 @@ def backlight(RE: RunEngine):
 
 @pytest.fixture
 def baton(RE: RunEngine):
-    return i03.baton(connect_immediately=True, mock=True)
+    baton = i03.baton(connect_immediately=True, mock=True)
+    set_mock_value(baton.requested_user, HYPERION_USER)
+    set_mock_value(baton.current_user, HYPERION_USER)
+    return baton
 
 
 @pytest.fixture
