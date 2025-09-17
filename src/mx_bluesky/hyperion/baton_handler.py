@@ -124,11 +124,11 @@ def run_udc_when_requested(context: BlueskyContext, runner: PlanRunner):
         yield from bpp.contingency_wrapper(collect(), final_plan=release_baton)
 
     context.run_engine(acquire_baton())
-    _initialise_udc(context)
+    _initialise_udc(context, runner.is_dev_mode)
     context.run_engine(collect_then_release())
 
 
-def _initialise_udc(context: BlueskyContext):
+def _initialise_udc(context: BlueskyContext, dev_mode: bool):
     """
     Perform all initialisation that happens at the start of UDC just after the
     baton is acquired, but before we execute any plans or move hardware.
@@ -139,7 +139,7 @@ def _initialise_udc(context: BlueskyContext):
     LOGGER.info("Initialising mx-bluesky for UDC start...")
     clear_all_device_caches(context)
     LOGGER.debug("Reinitialising beamline devices")
-    setup_devices(context, False)
+    setup_devices(context, dev_mode)
     set_commissioning_signal(_get_baton(context).commissioning)
 
 
