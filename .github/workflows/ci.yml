@@ -8,6 +8,12 @@ jobs:
   check:
     uses: ./.github/workflows/_check.yml
 
+  require-label:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/_label.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+
   lint:
     needs: check
     if: needs.check.outputs.branch-pr == ''
