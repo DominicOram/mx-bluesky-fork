@@ -11,8 +11,6 @@ jobs:
   require-label:
     if: github.event_name == 'pull_request'
     uses: ./.github/workflows/_label.yml
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
 
   lint:
     needs: check
