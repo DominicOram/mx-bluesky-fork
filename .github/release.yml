@@ -23,6 +23,12 @@ changelog:
     - title: I24
       labels:
         - i24
+    - title: VMXm
+      labels:
+        - vmxm
+    - title: VMXi
+      labels:
+        - vmxi
     - title: Documentation
       labels:
         - documentation
