@@ -164,3 +164,4 @@ def pin_tip_centre_plan(
         PinNotFoundError, wait_for_tip_to_be_found, pin_tip_detect
     )
     yield from offset_and_move(tip)
+    # Test 1
